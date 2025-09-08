@@ -1,0 +1,13 @@
+services:
+  money-balancer:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/data
+    environment:
+      - MONEYBALANCER_JWT_SECRET=some_super_secret_secret
+      - RUST_LOG=debug
+    restart: unless-stopped
