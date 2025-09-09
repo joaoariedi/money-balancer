@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  money-balancer:
+    image: ghcr.io/joaoariedi/money-balancer:latest
+    container_name: money-balancer
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/data
+    environment:
+      - ROCKET_ADDRESS=0.0.0.0
+      - ROCKET_PORT=8000
+      # Add any other environment variables your app needs
+      # - DATABASE_URL=sqlite:///data/money-balancer.sqlite
+    networks:
+      - money-balancer-network
+
+networks:
+  money-balancer-network:
+    driver: bridge
+
+volumes:
+  data:
+    driver: local
