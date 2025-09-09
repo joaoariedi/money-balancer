@@ -1,8 +1,4 @@
-import {
-  Visibility,
-  VisibilityOff,
-  Group as GroupIcon,
-} from '@mui/icons-material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import {
   Card,
   CardActionArea,
@@ -93,78 +89,51 @@ export default function GroupListItem({
               textAlign: 'left',
             }}
           >
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                width: '100%',
-                gap: 2,
-              }}
-            >
-              <Box
+            <Box sx={{ width: '100%' }}>
+              <Typography
+                variant='h6'
+                component='div'
                 sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 48,
-                  height: 48,
-                  borderRadius: 2,
-                  backgroundColor: isHidden
-                    ? 'action.disabled'
-                    : 'primary.light',
-                  color: isHidden ? 'text.disabled' : 'primary.contrastText',
+                  fontWeight: 500,
+                  fontSize: '1.1rem',
+                  color: isHidden ? 'text.disabled' : 'text.primary',
+                  mb: 0.5,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                <GroupIcon fontSize='medium' />
-              </Box>
+                {group.name}
+              </Typography>
 
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography
-                  variant='h6'
-                  component='div'
-                  sx={{
-                    fontWeight: 500,
-                    fontSize: '1.1rem',
-                    color: isHidden ? 'text.disabled' : 'text.primary',
-                    mb: 0.5,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {group.name}
-                </Typography>
-
-                {(group.created_at || group.updated_at) && (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Chip
-                      size='small'
-                      label={isNewGroup ? 'New' : 'Active'}
-                      sx={{
-                        height: 20,
-                        fontSize: '0.7rem',
-                        backgroundColor: isNewGroup
-                          ? 'success.light'
-                          : 'info.light',
-                        color: isNewGroup
-                          ? 'success.contrastText'
-                          : 'info.contrastText',
-                        fontWeight: 600,
-                      }}
-                    />
-                    <Typography
-                      variant='body2'
-                      sx={{
-                        color: isHidden ? 'text.disabled' : 'text.secondary',
-                        fontSize: '0.875rem',
-                      }}
-                    >
-                      {isNewGroup ? 'Created' : 'Updated'}{' '}
-                      {getLastActivityText()}
-                    </Typography>
-                  </Box>
-                )}
-              </Box>
+              {(group.created_at || group.updated_at) && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Chip
+                    size='small'
+                    label={isNewGroup ? 'New' : 'Active'}
+                    sx={{
+                      height: 20,
+                      fontSize: '0.7rem',
+                      backgroundColor: isNewGroup
+                        ? 'success.light'
+                        : 'info.light',
+                      color: isNewGroup
+                        ? 'success.contrastText'
+                        : 'info.contrastText',
+                      fontWeight: 600,
+                    }}
+                  />
+                  <Typography
+                    variant='body2'
+                    sx={{
+                      color: isHidden ? 'text.disabled' : 'text.secondary',
+                      fontSize: '0.875rem',
+                    }}
+                  >
+                    {isNewGroup ? 'Created' : 'Updated'} {getLastActivityText()}
+                  </Typography>
+                </Box>
+              )}
             </Box>
           </CardActionArea>
 
