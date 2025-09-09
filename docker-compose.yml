@@ -10,8 +10,7 @@ services:
     environment:
       - ROCKET_ADDRESS=0.0.0.0
       - ROCKET_PORT=8000
-      # Add any other environment variables your app needs
-      # - DATABASE_URL=sqlite:///data/money-balancer.sqlite
+      - DATABASE_URL=sqlite:/data/money-balancer.sqlite?mode=rwc
     networks:
       - money-balancer-network
 
