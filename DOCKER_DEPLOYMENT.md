@@ -38,8 +38,6 @@ docker push ghcr.io/joaoariedi/money-balancer:latest
 4. **Paste this docker-compose content:**
 
 ```yaml
-version: '3.8'
-
 services:
   money-balancer:
     image: ghcr.io/joaoariedi/money-balancer:latest

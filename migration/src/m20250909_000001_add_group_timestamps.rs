@@ -8,7 +8,8 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        let current_timestamp = chrono::Utc::now().timestamp();
+        // Use a fixed timestamp value for existing groups
+        let current_timestamp = 1725868800; // 2024-09-09 00:00:00 UTC
         
         // Add created_at column with default value for existing groups
         manager
