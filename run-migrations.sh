@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -e  # Exit on any error
 
 # Script to run migrations on existing database
