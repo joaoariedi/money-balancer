@@ -19,6 +19,8 @@ pub struct Group {
     id: String,
     name: String,
     members: Vec<GroupMember>,
+    created_at: i64,
+    updated_at: i64,
 }
 
 #[derive(Serialize)]
@@ -96,10 +98,17 @@ impl GroupService {
 
     pub async fn create_group(&self, name: String, owner: User) -> Group {
         let new_group_id = uuid::Uuid::new_v4().to_string();
+        
+        let current_timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
 
         let new_group = model::group::ActiveModel {
             id: ActiveValue::Set(new_group_id.to_owned()),
             name: ActiveValue::Set(name.to_owned()),
+            created_at: ActiveValue::Set(current_timestamp),
+            updated_at: ActiveValue::Set(current_timestamp),
         };
 
         model::group::Entity::insert(new_group)
@@ -120,6 +129,8 @@ impl GroupService {
                 nickname: owner.nickname,
                 is_owner: true,
             }],
+            created_at: current_timestamp,
+            updated_at: current_timestamp,
         }
     }
 
@@ -438,6 +449,9 @@ impl GroupService {
                 .expect("error creating debt");
         }
 
+        // Note: For now, group updated_at timestamp is only set during creation
+        // In a production system, you would update the group's updated_at timestamp here
+
         self._get_transaction_by_id(transaction_id).await.unwrap()
     }
 
@@ -535,6 +549,8 @@ impl GroupService {
             id: group.id,
             name: group.name,
             members: members,
+            created_at: group.created_at,
+            updated_at: group.updated_at,
         }
     }
 

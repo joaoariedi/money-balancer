@@ -1,4 +1,4 @@
-import { Add, ChevronRight } from '@mui/icons-material';
+import { Add, ExpandMore, RestoreFromTrash } from '@mui/icons-material';
 import { LoadingButton } from '@mui/lab';
 import {
   Button,
@@ -11,13 +11,21 @@ import {
   Skeleton,
   TextField,
   Typography,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Box,
+  Divider,
 } from '@mui/material';
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useState, useMemo } from 'react';
 import { FieldValues, useForm } from 'react-hook-form';
 import { useLocation, useNavigate } from 'react-router-dom';
 import CollapsableAlert from '../components/CollapsableAlert';
+import GroupListItem from '../components/GroupListItem';
+import { useGroupVisibility } from '../hooks/useGroupVisibility';
 
 import { Context } from '../data/Context';
+import { Group } from '../data/Types';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -32,6 +40,9 @@ export default function LoginPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const { isGroupHidden, toggleGroupVisibility, showAllGroups } =
+    useGroupVisibility();
 
   useEffect(() => {
     if (!api.loggedIn()) {
@@ -59,6 +70,25 @@ export default function LoginPage() {
     setUser(r);
   };
 
+  // Sort and filter groups
+  const { visibleGroups, hiddenGroups } = useMemo(() => {
+    if (!user?.groups) {
+      return { visibleGroups: [], hiddenGroups: [] };
+    }
+
+    const sortedGroups = [...user.groups].sort((a: Group, b: Group) => {
+      // Sort by updated_at desc, then created_at desc
+      const aTime = a.updated_at || a.created_at || 0;
+      const bTime = b.updated_at || b.created_at || 0;
+      return bTime - aTime;
+    });
+
+    const visible = sortedGroups.filter(group => !isGroupHidden(group.id));
+    const hidden = sortedGroups.filter(group => isGroupHidden(group.id));
+
+    return { visibleGroups: visible, hiddenGroups: hidden };
+  }, [user?.groups, isGroupHidden]);
+
   const onSubmit = async (data: FieldValues) => {
     setLoading(true);
     const r = await api.createGroup(data.name);
@@ -84,21 +114,17 @@ export default function LoginPage() {
 
       <Grid spacing={2} container>
         {!loading
-          ? user?.groups.map(group => (
+          ? visibleGroups.map(group => (
               <Grid xs={12} key={`group-item-${group.id}`} item>
-                <Button
-                  onClick={() => navigate(`/group/${group.id}`)}
-                  variant='contained'
-                  endIcon={<ChevronRight />}
-                  fullWidth
-                >
-                  {group.name}
-                </Button>
+                <GroupListItem
+                  group={group}
+                  onToggleVisibility={toggleGroupVisibility}
+                />
               </Grid>
             ))
           : new Array(2).fill(0).map((_, i) => (
               <Grid item xs={12} key={`current-group-skeleton-${i}`}>
-                <Skeleton variant='rounded' width={'100%'} height={36.5} />
+                <Skeleton variant='rounded' width={'100%'} height={48} />
               </Grid>
             ))}
 
@@ -113,6 +139,51 @@ export default function LoginPage() {
           </Button>
         </Grid>
       </Grid>
+
+      {/* Hidden Groups Section */}
+      {hiddenGroups.length > 0 && (
+        <Box sx={{ mt: 3 }}>
+          <Divider sx={{ mb: 2 }} />
+          <Accordion
+            elevation={0}
+            sx={{ border: '1px solid', borderColor: 'divider' }}
+          >
+            <AccordionSummary
+              expandIcon={<ExpandMore />}
+              aria-controls='hidden-groups-content'
+              id='hidden-groups-header'
+            >
+              <Typography variant='subtitle1' color='text.secondary'>
+                Hidden Groups ({hiddenGroups.length})
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Grid spacing={1} container>
+                {hiddenGroups.map(group => (
+                  <Grid xs={12} key={`hidden-group-item-${group.id}`} item>
+                    <GroupListItem
+                      group={group}
+                      isHidden={true}
+                      onToggleVisibility={toggleGroupVisibility}
+                    />
+                  </Grid>
+                ))}
+                <Grid xs={12} item sx={{ mt: 1 }}>
+                  <Button
+                    variant='outlined'
+                    size='small'
+                    onClick={showAllGroups}
+                    startIcon={<RestoreFromTrash />}
+                    disabled={loading}
+                  >
+                    Restore All Groups
+                  </Button>
+                </Grid>
+              </Grid>
+            </AccordionDetails>
+          </Accordion>
+        </Box>
+      )}
 
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
         <DialogTitle>New group</DialogTitle>

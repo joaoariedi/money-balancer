@@ -9,6 +9,8 @@ export interface Group {
   id: string;
   name: string;
   members: GroupMember[];
+  created_at: number;
+  updated_at: number;
 }
 
 export interface GroupMember {

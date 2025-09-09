@@ -10,13 +10,14 @@ use rocket::*;
 
 use sea_orm::*;
 use sea_orm_migration::prelude::*;
+use std::env;
 use std::sync::Arc;
 
-// Change this according to your database implementation,
-// or supply it as an environment variable.
-// the database URL string follows the following format:
-// "protocol://username:password@host:port/database"
-const DATABASE_URL: &str = "sqlite:./money-balancer.sqlite?mode=rwc";
+// Database URL can be set via environment variable DATABASE_URL
+// Defaults to SQLite in the /data volume for Docker deployments
+fn get_database_url() -> String {
+    env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite:/data/money-balancer.sqlite?mode=rwc".to_string())
+}
 
 async fn set_up_db(url: &str) -> Result<DatabaseConnection, DbErr> {
     let db = Database::connect(url).await?;
@@ -56,7 +57,8 @@ fn options() {}
 
 #[launch] // The "main" function of the program
 async fn rocket() -> _ {
-    let db = match set_up_db(DATABASE_URL).await {
+    let database_url = get_database_url();
+    let db = match set_up_db(&database_url).await {
         Ok(db) => db,
         Err(e) => panic!("{}", e),
     };
