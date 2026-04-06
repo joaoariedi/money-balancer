@@ -79,14 +79,29 @@ Money Balancer is a full-stack shared expense tracking application. Users create
 - **When** they click logout from the header menu
 - **Then** the token is cleared and they are redirected to the login page
 
+### US15: Edit Transaction [P2]
+- **Given** an authenticated user viewing a transaction they created (creditor)
+- **When** they click the edit button on the transaction card and modify the amount, description, or consumers
+- **Then** the transaction is updated (full replacement), old debts are deleted and new debts recalculated using the fair splitting algorithm, and the group's debt balances update. All debtor_ids must be current group members. The operation is wrapped in a database transaction for atomicity.
+
+### US16: Delete Group [P2]
+- **Given** an authenticated group owner on the group page
+- **When** they click delete and confirm in the confirmation dialog (which shows group name and transaction count)
+- **Then** the group and all associated members, transactions, and debts are cascade-deleted, and the user is navigated to the group list
+
+### US17: Edit User Profile [P2]
+- **Given** an authenticated user
+- **When** they click "Edit Profile" in the header menu and modify their nickname (and optionally their password)
+- **Then** the nickname is updated immediately (reflected everywhere via display-time resolution from user record), and if a new password was provided, it is bcrypt-hashed and stored. Existing JWT tokens remain valid. The response returns FullUser (with groups) so the frontend context can update without a second API call.
+
 ## Functional Requirements
 
 | ID | Requirement | Priority | Scenario | Source |
 |----|-------------|----------|----------|--------|
 | FR-001 | Amounts stored as integers in cents (i32); frontend divides by 100 for display | P1 | US6, US7, US8 | `src/model/debt.rs:11`, `client/src/components/Debts.tsx:20` |
-| FR-002 | Equal split with fair remainder distribution using `was_split_unequally` history | P1 | US6 | `src/services/group.rs:140-200` |
+| FR-002 | Equal split with fair remainder distribution using `was_split_unequally` history. Example: 100 cents split 3 ways = 34 + 33 + 33; the debtor with fewest past overpayments gets the extra cent | P1 | US6 | `src/services/group.rs:140-200` |
 | FR-003 | Only transaction creditor can delete their transaction | P1 | US9 | `src/services/group.rs:245-260` |
-| FR-004 | Group membership required for all group data access | P1 | US5-US9 | `src/services/group.rs:75-85` |
+| FR-004 | Group membership required for all group data access. Exception: POST /group/{id}/member (join) is callable by non-members to become a member; returns 400 if already a member | P1 | US5-US9 | `src/services/group.rs:75-85` |
 | FR-005 | Passwords hashed with bcrypt before storage | P1 | US1 | `src/services/user.rs:25` |
 | FR-006 | JWT tokens use HS256, no expiration validation (`validate_exp = false`) | P1 | US2, US3 | `src/services/authentication.rs` |
 | FR-007 | At least one auth provider must be enabled; validated at startup | P1 | US2, US3 | `src/services/authentication.rs:30-45` |
@@ -95,7 +110,7 @@ Money Balancer is a full-stack shared expense tracking application. Users create
 | FR-010 | Cascade delete: deleting a group removes all members, transactions, and debts | P2 | - | `migration/src/m20220912_000003`, `m20220920_234028`, `m20220920_234539` |
 | FR-011 | User deletion restricted when referenced by transactions or debts (FK restrict) | P2 | - | `migration/src/m20220920_234028`, `m20220920_234539` |
 | FR-012 | Debt net calculation: credits from others minus debts to others per counterparty | P1 | US7 | `src/services/group.rs:260-313` |
-| FR-013 | Amount input normalizes comma/period separators, pads to cents format | P1 | US6 | `client/src/components/TransactionCreationDialog.tsx:50-80` |
+| FR-013 | Amount input normalizes comma/period separators, pads to cents format. Examples: "5" → "0.05" (5 cents), "500" → "5.00" (500 cents), "1234" → "12.34" (1234 cents). Client sends `parseFloat(display) * 100` to backend | P1 | US6 | `client/src/components/TransactionCreationDialog.tsx:50-80` |
 | FR-014 | Auth token and user data persisted in localStorage | P1 | US2 | `client/src/utils/ContextWrapper.tsx` |
 | FR-015 | Groups sorted by `updated_at` descending on list page | P2 | US10 | `client/src/pages/GroupListPage.tsx` |
 | FR-016 | Group timestamps (`created_at`, `updated_at`) set as Unix epoch seconds (i64) | P2 | US4 | `src/services/group.rs:30-45`, `migration/src/m20250909_000001` |
@@ -107,6 +122,14 @@ Money Balancer is a full-stack shared expense tracking application. Users create
 | FR-022 | Deprecated `JWT_SECRET` env var maps to `MONEYBALANCER_JWT_SECRET` for backward compatibility | P3 | - | `src/services/configuration.rs:72-76` |
 | FR-023 | Frontend embedded in Rust binary via `rust-embed` in production builds | P2 | All | `src/routes/client.rs` |
 | FR-024 | Transaction timestamp optionally provided by client; defaults to server time | P2 | US6 | `src/routes/group.rs` |
+| FR-025 | Transaction update is full replacement (PUT semantics): all fields required (amount, description, debtor_ids, optional timestamp). Only creditor can edit. All debtor_ids must be current group members. Operation wrapped in DB transaction. Returns 404 for non-creditor/not-found. | P2 | US15 | Plan CLR-003 |
+| FR-026 | Only group owner can delete a group. Returns 404 for non-owner (hides existence). Confirmation dialog shows group name and number of transactions that will be lost. Frontend navigates to group list after deletion. | P2 | US16 | Plan CLR-004 |
+| FR-027 | User profile update: nickname required (non-empty), password optional. If password provided and non-empty, bcrypt-hash and store. If omitted or empty string, leave unchanged. Response is FullUser (with groups). | P2 | US17 | Plan CLR-005 |
+| FR-028 | Password minimum 8 characters enforced at frontend only (RegistrationPage). Backend has no length validation (existing behavior). | P2 | US1, US17 | `client/src/pages/RegistrationPage.tsx:98` |
+| FR-029 | Nicknames resolved at display time from user record via groupMembersById lookup. Changing a nickname retroactively updates all displayed transactions and debts. | P2 | US17 | `client/src/components/Debts.tsx:18`, `TransactionCard.tsx:78` |
+| FR-030 | Group "New" badge shown when `updated_at === created_at`; "Active" badge otherwise | P3 | US10 | `client/src/components/GroupListItem.tsx:60` |
+| FR-031 | Creditor can be included in the debtor list (self-debt). No validation prevents this. The creditor is neither automatically included nor excluded from consumers. | P2 | US6 | `src/services/group.rs:216-228` |
+| FR-032 | Amount must be > 0. Currently backend accepts u32 (prevents negative) but allows 0 — zero-amount transactions should be rejected. | P2 | US6, US15 | `src/routes/group.rs:18` |
 
 ## Success Criteria
 

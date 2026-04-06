@@ -88,24 +88,25 @@ ALTER TABLE transaction ALTER COLUMN timestamp TYPE BIGINT;
 
 ### New Endpoints
 
-**PUT /api/v1/group/{groupId}/transaction/{transactionId}** — Update transaction
+**PUT /api/v1/group/{groupId}/transaction/{transactionId}** — Update transaction (full replacement)
 ```
-Request:  { debtor_ids: string[], amount: number, description: string, timestamp?: number }
-Response: 200 Transaction | 404 Not Found | 400 Bad Request
+Request:  { debtor_ids: string[], amount: number (>0), description: string, timestamp?: number }
+Response: 200 Transaction | 404 Not Found (non-creditor or not found) | 400 Bad Request (debtor not in group, empty debtors, amount=0)
 Auth: Bearer token required; user must be transaction creditor
+Note: Operation wrapped in DB transaction for atomicity. All debtor_ids re-validated against current group membership.
 ```
 
 **DELETE /api/v1/group/{groupId}** — Delete group
 ```
 Request:  (no body)
-Response: 200 OK | 404 Not Found | 403 Forbidden
+Response: 200 OK | 404 Not Found (non-owner or not found — hides existence)
 Auth: Bearer token required; user must be group owner
 ```
 
 **PUT /api/v1/user** — Update user profile
 ```
-Request:  { nickname: string, password?: string }
-Response: 200 User | 401 Unauthorized
+Request:  { nickname: string (required, non-empty), password?: string (if provided and non-empty, bcrypt-hashed) }
+Response: 200 FullUser (with groups) | 401 Unauthorized
 Auth: Bearer token required
 ```
 
